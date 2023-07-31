@@ -6,6 +6,10 @@ const XmlToAscConverter = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [convertedContent, setConvertedContent] = useState('');
 
+  const reloadPage = () => {
+    window.location.reload()
+  }
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     setSelectedFile(file);
@@ -29,10 +33,10 @@ const XmlToAscConverter = () => {
           return;
         }
 
-        modifyXmlTags(result);
+        const modifiedXmlObj = modifyXmlTag(result);
 
         const builder = new Builder();
-        const modifiedXml = builder.buildObject(result);
+        const modifiedXml = builder.buildObject(modifiedXmlObj);
 
         const ascContent = new Blob([modifiedXml], { type: 'text/plain' });
         setConvertedContent(URL.createObjectURL(ascContent));
@@ -58,14 +62,49 @@ const XmlToAscConverter = () => {
     console.log(formattedXmlString);
   };
 
+  const modifyXmlTag = (xmlObject) => {
+    const traverse = (node) => {
+      if (Array.isArray(node)) {
+        return node.map(traverse).join('\n');
+      } else if (typeof node === 'object' && node !== null) {
+        const keys = Object.keys(node);
+        return keys.map((key) => `${traverse(node[key])}`).join('\n');
+      } else if (typeof node === 'string') {
+        // Remove the XML tags and add a new line after each tag
+        return node.replace(/<[^>]*>/g, '') + '\n';
+      } else {
+        return '';
+      }
+    };
+  
+    const ascContent = traverse(xmlObject);
+
+    console.log(ascContent)
+  
+    return ascContent;
+  };
+  
+
   return (
     <div className="container">
       <input type="file" onChange={handleFileUpload} />
-      <button onClick={handleConvert}>Convert</button>
-      {convertedContent && (
-        <a href={convertedContent} download="converted.asc">
+     
+      {!convertedContent ?
+      (
+        <button onClick={handleConvert}>Convert</button>
+      ) :
+      (
+        <div className='output'>
+         <a href={convertedContent} download="converted.asc">
+          <button>
           Download Converted ASC File
+          </button>
         </a>
+        <button onClick={() => {reloadPage()}}>
+          Convert a new file
+          </button>
+        </div>
+       
       )}
     </div>
   );
